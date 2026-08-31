@@ -1,0 +1,13 @@
+.DS_Store
+*.log
+*.tmp
+.env
+.env.*
+!.env.example
+build/
+dist/
+target/
+node_modules/
+coverage/
+.gradle/
+*.hprof

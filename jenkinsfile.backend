@@ -1,0 +1,110 @@
+@Library('weer-shared-library') _
+
+pipeline {
+    agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    tools {
+        jdk 'jdk21'
+    }
+
+    environment {
+        SERVICE_NAME = 'weer-backend'
+        SOURCE_REPO_URL = 'https://github.com/Woori-Emergency/WeER_backend.git'
+        SOURCE_BRANCH = 'main'
+        DOCKERFILE_PATH = 'Dockerfile'
+        REGISTRY_CREDENTIALS_ID = 'registry-credentials'
+        IMAGE_REPOSITORY = 'registry.example.com/weer/backend'
+        GITOPS_UPDATE_JOB = 'Update-K8S-Manifest'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    checkoutSource(
+                        repositoryUrl: env.SOURCE_REPO_URL,
+                        branch: env.SOURCE_BRANCH
+                    )
+                }
+            }
+        }
+
+        stage('Build And Test') {
+            steps {
+                script {
+                    buildBackend(
+                        javaVersion: '21',
+                        testEnabled: true
+                    )
+                }
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                script {
+                    env.IMAGE_TAG = createImageTag(serviceName: env.SERVICE_NAME)
+                    buildDockerImage(
+                        imageRepository: env.IMAGE_REPOSITORY,
+                        imageTag: env.IMAGE_TAG,
+                        dockerfilePath: env.DOCKERFILE_PATH,
+                        buildArgs: [
+                            JAR_FILE: 'build/libs/*.jar'
+                        ]
+                    )
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                script {
+                    env.IMAGE_DIGEST = pushImage(
+                        imageRepository: env.IMAGE_REPOSITORY,
+                        imageTag: env.IMAGE_TAG,
+                        credentialsId: env.REGISTRY_CREDENTIALS_ID
+                    )
+                }
+            }
+        }
+
+        stage('Trigger GitOps Handoff') {
+            steps {
+                script {
+                    triggerGitOpsUpdate(
+                        jobName: env.GITOPS_UPDATE_JOB,
+                        serviceName: env.SERVICE_NAME,
+                        imageRepository: env.IMAGE_REPOSITORY,
+                        imageTag: env.IMAGE_TAG,
+                        imageDigest: env.IMAGE_DIGEST,
+                        sourceCommit: env.GIT_COMMIT,
+                        waitForCompletion: false
+                    )
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                recordPipelineMetadata(
+                    serviceName: env.SERVICE_NAME,
+                    imageRepository: env.IMAGE_REPOSITORY,
+                    imageTag: env.IMAGE_TAG,
+                    imageDigest: env.IMAGE_DIGEST,
+                    sourceCommit: env.GIT_COMMIT,
+                    buildResult: currentBuild.currentResult
+                )
+                notifyResult(serviceName: env.SERVICE_NAME, buildResult: currentBuild.currentResult)
+                cleanWs()
+            }
+        }
+    }
+}
