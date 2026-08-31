@@ -1,42 +1,47 @@
 # WeER Pipeline
 
-WeER Pipeline is the Jenkins renewal repository for the WeER Renewal portfolio project.
+Language: [한국어](README.ko.md) | English | [日本語](README.ja.md)
 
-The original WeER team project used Jenkins-based CI/CD for backend and frontend delivery. This repository rebuilds that pipeline as a cleaner, reusable Jenkins structure:
+WeER Pipeline is the Jenkins CI repository for the WeER Renewal portfolio project. It demonstrates how an existing Jenkins-based delivery process can be reorganized into two explicit delivery paths:
 
-- `jenkinsfiles/jenkinsfile.backend` builds/tests the backend, publishes a Docker image, and asynchronously hands off image metadata to a GitOps manifest update job.
-- `jenkinsfiles/jenkinsfile.frontend` builds/tests the React frontend, uploads the static build artifact to S3, and optionally invalidates CloudFront.
-- `jenkinsfiles/jenkinsfile.update-k8s-manifest` is the downstream job that updates the GitOps repository after an image is published.
-- `shared-library-system/` contains reusable Jenkins shared library steps extracted from repeated pipeline logic.
-- `docs/` records the original CI/CD evidence, before/after design decisions, shared-library extraction criteria, Jenkins setup, GitOps handoff contract, and sensitive-value handling.
+- Backend: build and test the application, create and publish a Docker image, then hand off immutable image metadata to GitOps.
+- Frontend: build the React application and publish the static artifact to S3, with optional CloudFront invalidation.
 
-## MVP Flow
+## Why This Boundary?
 
-```text
-Application repository
-  -> Jenkins backend or frontend pipeline
-  -> build and test
+The two applications have different deployment units. The backend is a Kubernetes workload, so its release should change declarative image state in Git. The frontend is a static site, so a React build followed by S3 delivery is a smaller and more direct deployment path for this MVP. Keeping frontend Helm resources out of `weer-gitops` avoids representing a deployment model that is not actually used.
 
-Backend path
-  -> Docker image build from a versioned Dockerfile
-  -> image push
-  -> collect image tag, digest, git commit SHA, build URL
-  -> trigger "Update K8S Manifest" downstream job with wait: false
-  -> preserve build metadata as artifact/log
+This is a deliberate design choice, not a claim that one model is universally best. A future decision may move the frontend to Kubernetes if runtime requirements, edge routing, or operational consistency justify it.
 
-Frontend path
-  -> React production build
-  -> upload build/ to S3
-  -> optionally invalidate CloudFront
-  -> preserve build metadata as artifact/log
+## End-to-End Connection
 
-GitOps repository
-  -> update backend Helm values or Kubernetes manifest image tag
-  -> commit and push
-  -> Argo CD syncs to k3s
+```mermaid
+flowchart LR
+    A[Application repositories] --> B{Jenkins pipeline}
+    B -->|backend| C[Build and test]
+    C --> D[Docker image]
+    D --> E[Registry]
+    E --> F[Update K8S Manifest\nwait: false]
+    F --> G[weer-gitops\nupdate backend image tag]
+    G --> H[Argo CD]
+    H --> I[k3s backend rollout]
+    B -->|frontend| J[React build and test]
+    J --> K[S3 static site]
+    K --> L[Optional CloudFront invalidation]
 ```
 
-## Layout
+The downstream job receives `SERVICE_NAME`, image repository, image tag, image digest, source commit, and the upstream build URL. It updates `charts/weer/values-local.yaml` in `weer-gitops`; Argo CD then reconciles the Git change into k3s. `wait: false` keeps the application build independent from the asynchronous GitOps reconciliation. The trade-off is that the upstream job must expose downstream status and alerts clearly.
+
+## Design Discussion
+
+Several implementation opinions shaped this repository:
+
+1. Shared Library should remove repeated operational logic, but not hide every pipeline decision. The current library keeps checkout, application build, Docker publishing, static-site publishing, GitOps handoff, metadata recording, and manifest update as separate steps because they have different ownership and failure semantics.
+2. Backend image publication and Kubernetes deployment should be separate stages and repositories. This gives GitOps a reviewable, auditable deployment change and allows Argo CD to be the cluster reconciler.
+3. The frontend should not be forced through Docker and Helm when its current delivery target is S3. Its pipeline records the static-site target instead.
+4. InfluxDB or another history database is a useful next step, but the MVP first archives `pipeline-metadata.json`. A production implementation should send the same schema to a managed history service with retention, authentication, and duplicate-event handling.
+
+## Repository Layout
 
 ```text
 .
@@ -44,26 +49,20 @@ GitOps repository
 │   ├── jenkinsfile.backend
 │   ├── jenkinsfile.frontend
 │   └── jenkinsfile.update-k8s-manifest
-├── shared-library-system/
-│   └── vars/
+├── shared-library-system/vars/
+│   ├── buildApplication.groovy
+│   ├── checkoutSource.groovy
+│   ├── publishDockerImage.groovy
+│   ├── publishStaticSite.groovy
+│   ├── recordPipelineMetadata.groovy
+│   ├── triggerGitOpsUpdate.groovy
+│   └── updateGitOpsManifest.groovy
 ├── docs/
 └── examples/
 ```
 
-## Repository Boundary
+## Scope and Next Verification
 
-This repository owns Jenkins pipeline design and the handoff contract to GitOps.
+This repository owns Jenkins pipeline definitions and the handoff contract. `weer-gitops` owns Helm, Argo CD, k3s deployment state, and rollback documentation. Terraform/AWS reference architecture and monitoring are future portfolio layers.
 
-It does not own:
-
-- Helm chart implementation
-- Argo CD Application details
-- k3s cluster setup
-- Terraform AWS reference architecture
-- Prometheus/Grafana deployment
-
-Those belong to separate WeER Renewal infrastructure/GitOps documentation.
-
-## Status
-
-Initial scaffold. No real production credentials or private endpoints are included.
+Before calling this production-ready, verify Jenkins credentials and tools, build the real backend Dockerfile, run a local k3s/Argo CD deployment, test a failed downstream update, and confirm rollout/rollback evidence. No real credentials or private endpoints are included here.
