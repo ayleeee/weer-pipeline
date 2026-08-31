@@ -31,6 +31,16 @@ The downstream job should receive:
 - `SOURCE_COMMIT`
 - `UPSTREAM_BUILD_URL`
 
+## Downstream Job
+
+The downstream Jenkinsfile is:
+
+```text
+jenkinsfile.update-k8s-manifest
+```
+
+It checks out `ayleeee/weer-gitops`, updates `charts/weer/values-local.yaml`, commits the image tag change, and pushes to `main`.
+
 ## Async Trigger
 
 The backend/frontend pipelines trigger the downstream job with `wait: false`.

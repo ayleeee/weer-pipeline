@@ -1,0 +1,97 @@
+@Library('weer-shared-library') _
+
+pipeline {
+    agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    parameters {
+        string(name: 'SERVICE_NAME', defaultValue: '', description: 'weer-backend or weer-frontend')
+        string(name: 'IMAGE_REPOSITORY', defaultValue: '', description: 'Container image repository')
+        string(name: 'IMAGE_TAG', defaultValue: '', description: 'Container image tag')
+        string(name: 'IMAGE_DIGEST', defaultValue: '', description: 'Container image digest, if available')
+        string(name: 'SOURCE_COMMIT', defaultValue: '', description: 'Source application commit SHA')
+        string(name: 'UPSTREAM_BUILD_URL', defaultValue: '', description: 'Upstream Jenkins build URL')
+    }
+
+    environment {
+        GITOPS_REPO_URL = 'https://github.com/ayleeee/weer-gitops.git'
+        GITOPS_BRANCH = 'main'
+        GITOPS_CREDENTIALS_ID = 'gitops-repo-token'
+        VALUES_FILE = 'charts/weer/values-local.yaml'
+    }
+
+    stages {
+        stage('Validate Handoff') {
+            steps {
+                script {
+                    validateGitOpsHandoff(
+                        serviceName: params.SERVICE_NAME,
+                        imageRepository: params.IMAGE_REPOSITORY,
+                        imageTag: params.IMAGE_TAG
+                    )
+                }
+            }
+        }
+
+        stage('Checkout GitOps Repo') {
+            steps {
+                script {
+                    checkoutSource(
+                        repositoryUrl: env.GITOPS_REPO_URL,
+                        branch: env.GITOPS_BRANCH,
+                        credentialsId: env.GITOPS_CREDENTIALS_ID
+                    )
+                }
+            }
+        }
+
+        stage('Update Image Tag') {
+            steps {
+                script {
+                    updateGitOpsImageTag(
+                        serviceName: params.SERVICE_NAME,
+                        imageRepository: params.IMAGE_REPOSITORY,
+                        imageTag: params.IMAGE_TAG,
+                        valuesFile: env.VALUES_FILE
+                    )
+                }
+            }
+        }
+
+        stage('Commit And Push') {
+            steps {
+                script {
+                    commitGitOpsUpdate(
+                        serviceName: params.SERVICE_NAME,
+                        imageTag: params.IMAGE_TAG,
+                        sourceCommit: params.SOURCE_COMMIT,
+                        upstreamBuildUrl: params.UPSTREAM_BUILD_URL,
+                        credentialsId: env.GITOPS_CREDENTIALS_ID
+                    )
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                recordPipelineMetadata(
+                    serviceName: params.SERVICE_NAME,
+                    imageRepository: params.IMAGE_REPOSITORY,
+                    imageTag: params.IMAGE_TAG,
+                    imageDigest: params.IMAGE_DIGEST,
+                    sourceCommit: params.SOURCE_COMMIT,
+                    buildResult: currentBuild.currentResult
+                )
+                notifyResult(serviceName: 'gitops-update', buildResult: currentBuild.currentResult)
+                cleanWs()
+            }
+        }
+    }
+}

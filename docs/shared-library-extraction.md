@@ -15,6 +15,9 @@ Good candidates:
 - `buildDockerImage`
 - `pushImage`
 - `triggerGitOpsUpdate`
+- `validateGitOpsHandoff`
+- `updateGitOpsImageTag`
+- `commitGitOpsUpdate`
 - `recordPipelineMetadata`
 - `notifyResult`
 
