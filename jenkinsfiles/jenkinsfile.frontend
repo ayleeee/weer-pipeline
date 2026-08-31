@@ -38,10 +38,10 @@ pipeline {
         stage('Build And Test') {
             steps {
                 script {
-                    buildFrontend(
+                    buildApplication(
                         installCommand: 'npm ci',
-                        testCommand: 'npm test -- --watchAll=false',
                         buildCommand: 'npm run build',
+                        testCommand: 'npm test -- --watchAll=false',
                         testEnabled: false
                     )
                 }
@@ -51,22 +51,12 @@ pipeline {
         stage('Build Image') {
             steps {
                 script {
-                    env.IMAGE_TAG = createImageTag(serviceName: env.SERVICE_NAME)
-                    buildDockerImage(
+                    def shortCommit = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : 'unknown'
+                    env.IMAGE_TAG = "${env.SERVICE_NAME}-${env.BUILD_NUMBER}-${shortCommit}"
+                    env.IMAGE_DIGEST = publishDockerImage(
                         imageRepository: env.IMAGE_REPOSITORY,
                         imageTag: env.IMAGE_TAG,
-                        dockerfilePath: env.DOCKERFILE_PATH
-                    )
-                }
-            }
-        }
-
-        stage('Push Image') {
-            steps {
-                script {
-                    env.IMAGE_DIGEST = pushImage(
-                        imageRepository: env.IMAGE_REPOSITORY,
-                        imageTag: env.IMAGE_TAG,
+                        dockerfilePath: env.DOCKERFILE_PATH,
                         credentialsId: env.REGISTRY_CREDENTIALS_ID
                     )
                 }
@@ -101,7 +91,7 @@ pipeline {
                     sourceCommit: env.GIT_COMMIT,
                     buildResult: currentBuild.currentResult
                 )
-                notifyResult(serviceName: env.SERVICE_NAME, buildResult: currentBuild.currentResult)
+                echo "[${env.SERVICE_NAME}] pipeline result: ${currentBuild.currentResult}"
                 cleanWs()
             }
         }

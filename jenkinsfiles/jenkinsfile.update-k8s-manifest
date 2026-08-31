@@ -26,18 +26,6 @@ pipeline {
     }
 
     stages {
-        stage('Validate Handoff') {
-            steps {
-                script {
-                    validateGitOpsHandoff(
-                        serviceName: params.SERVICE_NAME,
-                        imageRepository: params.IMAGE_REPOSITORY,
-                        imageTag: params.IMAGE_TAG
-                    )
-                }
-            }
-        }
-
         stage('Checkout GitOps Repo') {
             steps {
                 script {
@@ -50,27 +38,16 @@ pipeline {
             }
         }
 
-        stage('Update Image Tag') {
+        stage('Update And Commit Manifest') {
             steps {
                 script {
-                    updateGitOpsImageTag(
+                    updateGitOpsManifest(
                         serviceName: params.SERVICE_NAME,
                         imageRepository: params.IMAGE_REPOSITORY,
                         imageTag: params.IMAGE_TAG,
-                        valuesFile: env.VALUES_FILE
-                    )
-                }
-            }
-        }
-
-        stage('Commit And Push') {
-            steps {
-                script {
-                    commitGitOpsUpdate(
-                        serviceName: params.SERVICE_NAME,
-                        imageTag: params.IMAGE_TAG,
                         sourceCommit: params.SOURCE_COMMIT,
                         upstreamBuildUrl: params.UPSTREAM_BUILD_URL,
+                        valuesFile: env.VALUES_FILE,
                         credentialsId: env.GITOPS_CREDENTIALS_ID
                     )
                 }
@@ -89,7 +66,7 @@ pipeline {
                     sourceCommit: params.SOURCE_COMMIT,
                     buildResult: currentBuild.currentResult
                 )
-                notifyResult(serviceName: 'gitops-update', buildResult: currentBuild.currentResult)
+                echo "[gitops-update] pipeline result: ${currentBuild.currentResult}"
                 cleanWs()
             }
         }

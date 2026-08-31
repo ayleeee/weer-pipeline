@@ -9,17 +9,13 @@ Reduce repeated Jenkinsfile logic while keeping service-specific behavior visibl
 Good candidates:
 
 - `checkoutSource`
-- `buildBackend`
-- `buildFrontend`
-- `createImageTag`
-- `buildDockerImage`
-- `pushImage`
+- `buildApplication`
+- `publishDockerImage`
 - `triggerGitOpsUpdate`
-- `validateGitOpsHandoff`
-- `updateGitOpsImageTag`
-- `commitGitOpsUpdate`
+- `updateGitOpsManifest`
 - `recordPipelineMetadata`
-- `notifyResult`
+
+The library should not split every stage into a separate function. Functions are extracted only when they remove repeated backend/frontend logic or define a reusable boundary.
 
 ## Keep In Jenkinsfile
 
@@ -34,6 +30,8 @@ Keep these close to each service:
 - build command choices
 - test enabled/disabled decision
 - downstream job name
+- image tag format
+- result notification wording
 
 ## Do Not Extract
 
@@ -46,3 +44,14 @@ Keep these close to each service:
 ## Design Rule
 
 The Jenkinsfile should read like a delivery story. The shared library should hold reusable mechanics.
+
+Current intended shared library surface:
+
+```text
+checkoutSource
+buildApplication
+publishDockerImage
+triggerGitOpsUpdate
+updateGitOpsManifest
+recordPipelineMetadata
+```

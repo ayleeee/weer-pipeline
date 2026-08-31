@@ -31,10 +31,17 @@ record metadata
 notify result
 ```
 
+The Jenkinsfiles live under:
+
+```text
+jenkinsfiles/
+```
+
 ## Improvements
 
 - Shared logic is reusable across backend and frontend.
 - Jenkinsfiles are easier to scan in code review.
+- The shared library has a smaller surface area, so the design is easier to explain.
 - Dockerfiles remain versioned and reviewable in application repositories.
 - CI image publication is separated from GitOps manifest mutation.
 - `wait: false` downstream handoff keeps CI jobs decoupled from CD jobs.

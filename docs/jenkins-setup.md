@@ -16,6 +16,20 @@ The Jenkinsfiles load it with:
 @Library('weer-shared-library') _
 ```
 
+## Jenkinsfiles
+
+Pipeline definitions are grouped under:
+
+```text
+jenkinsfiles/
+```
+
+Jobs:
+
+- `jenkinsfiles/jenkinsfile.backend`
+- `jenkinsfiles/jenkinsfile.frontend`
+- `jenkinsfiles/jenkinsfile.update-k8s-manifest`
+
 ## Required Tool Names
 
 The example Jenkinsfiles assume these Jenkins tool names:

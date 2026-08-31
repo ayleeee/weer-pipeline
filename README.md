@@ -4,9 +4,9 @@ WeER Pipeline is the Jenkins renewal repository for the WeER Renewal portfolio p
 
 The original WeER team project used Jenkins-based CI/CD for backend and frontend delivery. This repository rebuilds that pipeline as a cleaner, reusable Jenkins structure:
 
-- `jenkinsfile.backend` builds/tests the backend, builds a Docker image, pushes it to a registry, and asynchronously hands off image metadata to a GitOps manifest update job.
-- `jenkinsfile.frontend` builds/tests the frontend, builds a Docker image or static artifact, pushes it to a registry, and uses the same GitOps handoff contract.
-- `jenkinsfile.update-k8s-manifest` is the downstream job that updates the GitOps repository after an image is published.
+- `jenkinsfiles/jenkinsfile.backend` builds/tests the backend, publishes a Docker image, and asynchronously hands off image metadata to a GitOps manifest update job.
+- `jenkinsfiles/jenkinsfile.frontend` builds/tests the frontend, publishes a Docker image or static artifact, and uses the same GitOps handoff contract.
+- `jenkinsfiles/jenkinsfile.update-k8s-manifest` is the downstream job that updates the GitOps repository after an image is published.
 - `shared-library-system/` contains reusable Jenkins shared library steps extracted from repeated pipeline logic.
 - `docs/` records the original CI/CD evidence, before/after design decisions, shared-library extraction criteria, Jenkins setup, GitOps handoff contract, and sensitive-value handling.
 
@@ -26,6 +26,20 @@ GitOps repository
   -> update Helm values or Kubernetes manifest image tag
   -> commit and push
   -> Argo CD syncs to k3s
+```
+
+## Layout
+
+```text
+.
+├── jenkinsfiles/
+│   ├── jenkinsfile.backend
+│   ├── jenkinsfile.frontend
+│   └── jenkinsfile.update-k8s-manifest
+├── shared-library-system/
+│   └── vars/
+├── docs/
+└── examples/
 ```
 
 ## Repository Boundary

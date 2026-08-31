@@ -36,7 +36,7 @@ The downstream job should receive:
 The downstream Jenkinsfile is:
 
 ```text
-jenkinsfile.update-k8s-manifest
+jenkinsfiles/jenkinsfile.update-k8s-manifest
 ```
 
 It checks out `ayleeee/weer-gitops`, updates `charts/weer/values-local.yaml`, commits the image tag change, and pushes to `main`.
