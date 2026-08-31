@@ -10,7 +10,7 @@ pipeline {
     }
 
     parameters {
-        string(name: 'SERVICE_NAME', defaultValue: '', description: 'weer-backend or weer-frontend')
+        string(name: 'SERVICE_NAME', defaultValue: 'weer-backend', description: 'Backend service name for GitOps update')
         string(name: 'IMAGE_REPOSITORY', defaultValue: '', description: 'Container image repository')
         string(name: 'IMAGE_TAG', defaultValue: '', description: 'Container image tag')
         string(name: 'IMAGE_DIGEST', defaultValue: '', description: 'Container image digest, if available')

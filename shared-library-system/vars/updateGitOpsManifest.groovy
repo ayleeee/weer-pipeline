@@ -7,8 +7,8 @@ def call(Map config = [:]) {
     def valuesFile = config.valuesFile ?: 'charts/weer/values-local.yaml'
     def credentialsId = config.credentialsId ?: error('credentialsId is required')
 
-    if (!(serviceName in ['weer-backend', 'weer-frontend'])) {
-        error("SERVICE_NAME must be weer-backend or weer-frontend. Actual: ${serviceName}")
+    if (serviceName != 'weer-backend') {
+        error("SERVICE_NAME must be weer-backend for the current GitOps MVP. Actual: ${serviceName}")
     }
 
     if (!imageRepository?.trim()) {

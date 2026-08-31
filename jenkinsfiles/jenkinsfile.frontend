@@ -17,10 +17,11 @@ pipeline {
         SERVICE_NAME = 'weer-frontend'
         SOURCE_REPO_URL = 'https://github.com/Woori-Emergency/WeER_frontend.git'
         SOURCE_BRANCH = 'main'
-        DOCKERFILE_PATH = 'Dockerfile'
-        REGISTRY_CREDENTIALS_ID = 'registry-credentials'
-        IMAGE_REPOSITORY = 'registry.example.com/weer/frontend'
-        GITOPS_UPDATE_JOB = 'Update-K8S-Manifest'
+        AWS_CREDENTIALS_ID = 'aws-credentials'
+        AWS_REGION = 'ap-northeast-2'
+        S3_BUCKET_URI = 's3://weer-frontend-placeholder'
+        CLOUDFRONT_DISTRIBUTION_ID = 'CLOUDFRONT_DISTRIBUTION_ID_PLACEHOLDER'
+        BUILD_DIR = 'build'
     }
 
     stages {
@@ -48,32 +49,15 @@ pipeline {
             }
         }
 
-        stage('Build Image') {
+        stage('Publish Static Site') {
             steps {
                 script {
-                    def shortCommit = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : 'unknown'
-                    env.IMAGE_TAG = "${env.SERVICE_NAME}-${env.BUILD_NUMBER}-${shortCommit}"
-                    env.IMAGE_DIGEST = publishDockerImage(
-                        imageRepository: env.IMAGE_REPOSITORY,
-                        imageTag: env.IMAGE_TAG,
-                        dockerfilePath: env.DOCKERFILE_PATH,
-                        credentialsId: env.REGISTRY_CREDENTIALS_ID
-                    )
-                }
-            }
-        }
-
-        stage('Trigger GitOps Handoff') {
-            steps {
-                script {
-                    triggerGitOpsUpdate(
-                        jobName: env.GITOPS_UPDATE_JOB,
-                        serviceName: env.SERVICE_NAME,
-                        imageRepository: env.IMAGE_REPOSITORY,
-                        imageTag: env.IMAGE_TAG,
-                        imageDigest: env.IMAGE_DIGEST,
-                        sourceCommit: env.GIT_COMMIT,
-                        waitForCompletion: false
+                    publishStaticSite(
+                        buildDir: env.BUILD_DIR,
+                        bucketUri: env.S3_BUCKET_URI,
+                        distributionId: env.CLOUDFRONT_DISTRIBUTION_ID,
+                        credentialsId: env.AWS_CREDENTIALS_ID,
+                        region: env.AWS_REGION
                     )
                 }
             }
@@ -85,9 +69,9 @@ pipeline {
             script {
                 recordPipelineMetadata(
                     serviceName: env.SERVICE_NAME,
-                    imageRepository: env.IMAGE_REPOSITORY,
-                    imageTag: env.IMAGE_TAG,
-                    imageDigest: env.IMAGE_DIGEST,
+                    artifactType: 'static-site',
+                    artifactPath: env.BUILD_DIR,
+                    deploymentTarget: env.S3_BUCKET_URI,
                     sourceCommit: env.GIT_COMMIT,
                     buildResult: currentBuild.currentResult
                 )

@@ -7,10 +7,10 @@ This repository does not own the full GitOps flow. It owns the Jenkins side of t
 Jenkins responsibilities:
 
 - build/test application
-- build image from a versioned Dockerfile
-- push image to registry
-- collect image metadata
-- trigger downstream `Update K8S Manifest` job
+- build backend image from a versioned Dockerfile
+- push backend image to registry
+- collect backend image metadata
+- trigger downstream `Update K8S Manifest` job for backend deployments
 - preserve traceability metadata
 
 GitOps repository responsibilities:
@@ -43,12 +43,14 @@ It checks out `ayleeee/weer-gitops`, updates `charts/weer/values-local.yaml`, co
 
 ## Async Trigger
 
-The backend/frontend pipelines trigger the downstream job with `wait: false`.
+The backend pipeline triggers the downstream job with `wait: false`.
+
+The frontend pipeline does not use this GitOps handoff in the MVP. It builds the React app, uploads the static artifact to S3, and optionally invalidates CloudFront.
 
 Reason:
 
 - component pipelines do not need to block on GitOps update completion
-- backend and frontend pipelines stay decoupled from deployment state mutation
+- the backend pipeline stays decoupled from deployment state mutation
 - GitOps update can be retried independently
 
 Risk:

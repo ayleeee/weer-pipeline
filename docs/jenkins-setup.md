@@ -44,10 +44,11 @@ Do not commit real secrets. Use Jenkins credentials.
 Expected credential IDs:
 
 - `registry-credentials`
+- `aws-credentials`
+- `gitops-repo-token`
 
 Optional future credentials:
 
-- `gitops-repo-token`
 - `sonarqube-token`
 - `influxdb-token`
 
@@ -59,6 +60,7 @@ Likely plugins:
 - Git
 - Docker Pipeline or shell-based Docker access
 - Credentials Binding
+- AWS Credentials or compatible credentials binding for AWS CLI access
 - NodeJS
 - JDK tool installer or configured JDK
 

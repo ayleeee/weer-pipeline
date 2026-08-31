@@ -52,10 +52,11 @@ Original frontend build details:
 ## Renewal Implications
 
 - Keep backend/frontend Jenkinsfiles thin.
-- Extract repeated checkout, build, image, handoff, metadata, and notification logic into shared library functions.
-- Keep Dockerfiles versioned in application repositories; Jenkins builds from those Dockerfiles.
-- Replace direct GitOps mutation inside app pipelines with a downstream `Update K8S Manifest` job.
-- Preserve image tag, digest, source commit, build URL, and downstream job information for traceability.
+- Extract repeated checkout, build, image/static publish, handoff, metadata, and notification logic into shared library functions.
+- Keep backend Dockerfiles versioned in application repositories; Jenkins builds from those Dockerfiles.
+- Keep frontend delivery on the static hosting path: React build, S3 upload, optional CloudFront invalidation.
+- Replace direct backend GitOps mutation inside app pipelines with a downstream `Update K8S Manifest` job.
+- Preserve image tag/digest or artifact target, source commit, build URL, and downstream job information for traceability.
 
 ## Sensitive Values Found Or Suspected
 

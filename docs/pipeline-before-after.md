@@ -19,7 +19,7 @@ This made the pipeline hard to review as a reusable delivery system.
 
 The renewal design keeps component Jenkinsfiles focused on orchestration and extracts repeated behavior into shared library functions.
 
-Backend and frontend Jenkinsfiles should show the same high-level flow:
+Backend Jenkinsfile flow:
 
 ```text
 checkout
@@ -27,6 +27,17 @@ build/test
 build image
 push image
 trigger GitOps handoff
+record metadata
+notify result
+```
+
+Frontend Jenkinsfile flow:
+
+```text
+checkout
+React build/test
+upload build artifact to S3
+optionally invalidate CloudFront
 record metadata
 notify result
 ```
@@ -45,7 +56,8 @@ jenkinsfiles/
 - Dockerfiles remain versioned and reviewable in application repositories.
 - CI image publication is separated from GitOps manifest mutation.
 - `wait: false` downstream handoff keeps CI jobs decoupled from CD jobs.
-- Pipeline metadata preserves traceability from source commit to image tag/digest.
+- Frontend delivery stays aligned with its static hosting model instead of pretending it is a Kubernetes workload.
+- Pipeline metadata preserves traceability from source commit to image tag/digest or static artifact target.
 
 ## Tradeoffs
 

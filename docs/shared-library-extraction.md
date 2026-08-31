@@ -11,6 +11,7 @@ Good candidates:
 - `checkoutSource`
 - `buildApplication`
 - `publishDockerImage`
+- `publishStaticSite`
 - `triggerGitOpsUpdate`
 - `updateGitOpsManifest`
 - `recordPipelineMetadata`
@@ -26,6 +27,8 @@ Keep these close to each service:
 - source branch
 - Dockerfile path
 - image repository
+- S3 bucket URI
+- CloudFront distribution ID
 - Jenkins credential IDs
 - build command choices
 - test enabled/disabled decision
@@ -51,6 +54,7 @@ Current intended shared library surface:
 checkoutSource
 buildApplication
 publishDockerImage
+publishStaticSite
 triggerGitOpsUpdate
 updateGitOpsManifest
 recordPipelineMetadata
